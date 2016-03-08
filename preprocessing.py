@@ -34,6 +34,7 @@ dinner NN
 '''
 
 import os
+import copy
 
 def atis_to_mallet(atis, out=None):
     sentence_boundary = '======================================'
@@ -60,11 +61,7 @@ def atis_to_mallet(atis, out=None):
     assert(not sentence)
 
     if out:
-        with open(out, 'wb') as out:
-            for sentence in sentences:
-                for token in sentence:
-                    out.write('%s\n' % token)
-                out.write('\n')
+        mallet_to_file(sentences)
 
     return sentences    
 
@@ -91,33 +88,98 @@ def wsj_to_mallet(wsj, out=None):
                     current = []
 
     if out:
-        with open(out, 'wb') as out:
-            for sentence in sentences:
-                for token in sentence:
-                    out.write('%s\n' % token)
-                out.write('\n')
+        mallet_to_file(sentences)
     
     return sentences
+
+##################################################
+# Orthographic Features                          #
+##################################################
+
+def of_caps(word):
+    return "caps" if (word[0].isupper()) else ""
+
+def of_ends_in_s(word):
+    return "s" if (word.endswith('s')) else ""
+
+def of_ends_in_ing(word):
+    return "ing" if (word.endswith('ing')) else ""
+
+def of_ends_in_ly(word):
+    return 'ly' if (word.endswith('ly')) else ""
+
+def of_contains_hyphen(word):
+    return 'hyphen' if ('-' in word) else ""
+
+def of_starts_with_number(word):
+    return 'number' if (word[0].isdigit()) else ""
+
+def of_ends_in_ed(word):
+    return 'past' if (word.endswith('ed')) else ""
+
+def of_ends_in_er_or(word):
+    return 'person' if (word.endswith('er') or word.endswith('or')) else ""
+
+def of_ends_in_ion(word):
+    return 'act' if (word.endswith('ion')) else ""
+
+def of_ends_in_y(word):
+    return 'characterizer' if (word.endswith('y')) else ""
+
+def of_ends_in_ment(word):
+    return 'state' if (word.endswith('ment')) else ""
+
+def apply_orthographic_features(sentences, *features):
+    for sentence in sentences:
+        for idx, token in enumerate(sentence):
+            word = token.split(' ')[0]
+            applicable_features = []
+            for feature in features:
+                if feature(word):
+                    applicable_features.append(feature(word))
+            for feature in applicable_features:
+                sentence[idx] = token + (" %s" % feature)
+
+
+
+def mallet_to_file(sentences, out):
+    with open(out, 'wb') as out:
+        for sentence in sentences:
+            for token in sentence:
+                out.write('%s\n' % token)
+            out.write('\n')
+        
 
 for root, dirs, files in os.walk("/mydir"):
     for file in files:
         if file.endswith(".txt"):
              print(os.path.join(root, file))
 
-# Sample Usage: WSJ directories to single file.
-'''
 sentences   = []
-directories = ['00', '01', '02']
-for directory in directories:
-    for root, dirs, files in os.walk(directory):
-        for wsj_file in files:
-            if wsj_file.endswith(".pos"):
-                sentences.extend(wsj_to_mallet(os.path.join(root, wsj_file)))
-with open('wsj_mallet.pos', 'wb') as out:
-    for sentence in sentences:
-        for token in sentence:
-            out.write('%s\n' % token)
-        out.write('\n')
+'''
+directories = ['00', '01', '02', '03', '04',
+               '05', '06', '07', '08', '09',
+               '10', '11', '12', '13', '14',
+               '15', '16', '17', '18', '19', 
+               '20', '21', '22', '23', '24']
+'''
+
+# Sample UsagE: Apply features to ATIS dataset.
+'''
+sentences = atis_to_mallet('atis3.pos')
+features = [of_caps,
+            of_ends_in_s,
+            of_ends_in_ing,
+            of_ends_in_ly,
+            of_contains_hyphen,
+            of_starts_with_number,
+            of_ends_in_ed,
+            of_ends_in_er_or,
+            of_ends_in_ion,
+            of_ends_in_y,
+            of_ends_in_ment]
+apply_orthographic_features(sentences, *features)
+mallet_to_file(sentences, 'atis_all_features.pos')
 '''
 
 # Sample Usage: ATIS
